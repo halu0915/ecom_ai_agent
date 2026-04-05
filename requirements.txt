@@ -1,9 +1,7 @@
 pandas
 streamlit
-python-dateutil
-tabulate
 beautifulsoup4
 openpyxl
 playwright
 xlsxwriter
-lxml
+tabulate
