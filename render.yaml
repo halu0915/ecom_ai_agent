@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ecom-ai-agent
+    runtime: docker
+    plan: free
+    region: singapore
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: PYTHONUNBUFFERED
+        value: true
+    # Render's free tier can be slow, but this is the simplest path.
