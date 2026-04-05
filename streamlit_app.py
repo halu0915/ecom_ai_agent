@@ -106,21 +106,24 @@ with tab3:
     st.subheader('即時線上同步資料引擎')
     st.markdown('不必依賴外部工具匯出 CSV，直接從介面去真實網站爬取資料（此處以開放 API 較友善的 **PChome** 作為首發示範）。')
     
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col1:
-        target_platform = st.selectbox('選擇欲即時追蹤的電商', ['PChome', 'Shopee (透過 Playwright)', '中華黃頁 (IYP) - 企業名錄', '台灣黃頁 (Web66)'])
-    with col2:
-        fetch_keyword = st.text_input('輸入想抓取的商品關鍵字', value='五金')
-    with col3:
-        scraper_city = 'all'
-        if target_platform in ['中華黃頁 (IYP) - 企業名錄', '台灣黃頁 (Web66)']:
-            scraper_city = st.selectbox(
-                '選擇特定區域', 
-                options=['all', 'Taipei', 'NewTaipei', 'Taoyuan', 'Taichung', 'Tainan', 'Kaohsiung'],
-                format_func=lambda x: {'all':'全區', 'Taipei':'台北', 'NewTaipei':'新北', 'Taoyuan':'桃園', 'Taichung':'台中', 'Tainan':'台南', 'Kaohsiung':'高雄'}.get(x, x)
-            )
-            
-    if st.button('🚀 立刻去抓即時真實資料！'):
+    with st.form('scraper_form'):
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col1:
+            target_platform = st.selectbox('選擇欲即時追蹤的平台', ['中華黃頁 (IYP) - 企業名錄', '台灣黃頁 (Web66)', 'PChome', 'Shopee (透過 Playwright)'])
+        with col2:
+            fetch_keyword = st.text_input('輸入想抓取的關鍵字', value='五金')
+        with col3:
+            scraper_city = 'all'
+            if target_platform in ['中華黃頁 (IYP) - 企業名錄', '台灣黃頁 (Web66)']:
+                scraper_city = st.selectbox(
+                    '選擇特定區域', 
+                    options=['all', 'Taipei', 'NewTaipei', 'Taoyuan', 'Taichung', 'Tainan', 'Kaohsiung'],
+                    format_func=lambda x: {'all':'全區', 'Taipei':'台北', 'NewTaipei':'新北', 'Taoyuan':'桃園', 'Taichung':'台中', 'Tainan':'台南', 'Kaohsiung':'高雄'}.get(x, x)
+                )
+        
+        submitted = st.form_submit_button('🚀 立刻開始抓取資料！', use_container_width=True)
+
+    if submitted:
         if target_platform == 'PChome':
             import requests
             url = f"https://ecshweb.pchome.com.tw/search/v3.3/all/results?q={fetch_keyword}&page=1&sort=sale/dc"
