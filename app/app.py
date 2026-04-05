@@ -17,54 +17,62 @@ DB_PATH = ROOT / 'output' / 'db' / 'products.db'
 st.set_page_config(page_title='電商資料 AI Agent', layout='wide')
 st.title('電商資料 AI Agent')
 
-if not DB_PATH.exists():
-    st.warning('尚未建立資料庫，請先執行 scripts/run_etl.py')
-    st.stop()
-
-conn = get_conn(str(DB_PATH))
+db_exists = DB_PATH.exists()
+conn = None
+if db_exists:
+    conn = get_conn(str(DB_PATH))
 
 tab1, tab2, tab3 = st.tabs(['儀表板', 'AI 查詢', '即時線上抓取 (Live Fetch)'])
 
 with tab1:
-    total = conn.execute('SELECT COUNT(*) FROM products').fetchone()[0]
-    brands = conn.execute('SELECT COUNT(DISTINCT brand) FROM products').fetchone()[0]
-    cats = conn.execute('SELECT COUNT(DISTINCT category_std) FROM products').fetchone()[0]
-    avg_price = conn.execute('SELECT ROUND(AVG(price), 2) FROM products').fetchone()[0]
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric('商品數', total)
-    c2.metric('品牌數', brands)
-    c3.metric('類別數', cats)
-    c4.metric('平均價格', avg_price)
-
-    st.subheader('熱門類別')
-    top_cats = pd.read_sql_query(
-        'SELECT category_std, COUNT(*) AS cnt, ROUND(AVG(price),2) AS avg_price, MAX(sold_30d) AS max_sold FROM products GROUP BY category_std ORDER BY cnt DESC', conn
-    )
-    st.dataframe(top_cats, use_container_width=True)
+    if not db_exists:
+        st.info('👉 您可以點擊「即時線上抓取」分頁開始即時搜集資料。 (本地產品庫暫時無資料)')
+    else:
+        total = conn.execute('SELECT COUNT(*) FROM products').fetchone()[0]
+        brands = conn.execute('SELECT COUNT(DISTINCT brand) FROM products').fetchone()[0]
+        cats = conn.execute('SELECT COUNT(DISTINCT category_std) FROM products').fetchone()[0]
+        avg_price = conn.execute('SELECT ROUND(AVG(price), 2) FROM products').fetchone()[0]
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric('總商品數', total)
+        c2.metric('品牌數', brands)
+        c3.metric('類別數', cats)
+        c4.metric('平均價格', f'${avg_price}')
+        
+        # Charts
+        st.subheader('品牌分佈 (Top 10)')
+        df_brand = pd.read_sql('SELECT brand, COUNT(*) as count FROM products GROUP BY brand ORDER BY count DESC LIMIT 10', conn)
+        st.bar_chart(df_brand.set_index('brand'))
+        
+        st.subheader('類別分佈')
+        df_cat = pd.read_sql('SELECT category_std, COUNT(*) as count FROM products GROUP BY category_std ORDER BY count DESC', conn)
+        st.bar_chart(df_cat.set_index('category_std'))
 
 with tab2:
-    st.subheader('自然語言查詢')
-    user_query = st.text_input('輸入查詢', value='找跳蛋類，價格 1000 以下，銷量前 10')
-    if st.button('查詢'):
-        df, filters, sql = run_query(conn, user_query)
-        insights = build_insights(df)
-        st.write('解析條件：', filters)
-        st.code(sql)
-        st.dataframe(
-            df, 
-            use_container_width=True, 
-            column_config={
-                "source_url": st.column_config.LinkColumn("商品網址")
-            }
-        )
-        st.markdown('### AI 洞察')
-        for item in insights:
-            st.write(f'- {item}')
+    if not db_exists:
+        st.warning('⚠️ 此功能需要離線資料庫。請先在本地執行 `scripts/run_etl.py` 並上傳 `output/db/products.db`。')
+    else:
+        st.subheader('自然語言查詢')
+        user_query = st.text_input('輸入查詢語句', value='找五金類，價格 1000 以下，銷量前 10')
+        if st.button('執行 AI 查詢'):
+            df, filters, sql = run_query(conn, user_query)
+            insights = build_insights(df)
+            st.write('解析條件：', filters)
+            st.code(sql)
+            st.dataframe(
+                df, 
+                use_container_width=True, 
+                column_config={
+                    "source_url": st.column_config.LinkColumn("商品網址")
+                }
+            )
+            st.markdown('### AI 洞察')
+            for item in insights:
+                st.write(f'- {item}')
 
-        md = query_result_markdown(user_query, df, insights)
-        report_path = ROOT / 'reports' / 'query' / 'latest_query_result.md'
-        write_markdown(report_path, md)
-        st.success(f'已輸出 Markdown：{report_path}')
+            md = query_result_markdown(user_query, df, insights)
+            report_path = ROOT / 'reports' / 'query' / 'latest_query_result.md'
+            write_markdown(report_path, md)
+            st.success('查詢完成，報告已更新。')
 
 with tab3:
     st.subheader('即時線上同步資料引擎')
