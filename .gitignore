@@ -1,0 +1,32 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pyo
+.pyi
+.pyd
+.Python
+env/
+dist/
+build/
+*.egg-info/
+
+# Data and Logs
+output/db/*.db
+output/live_fetch/
+output/clean/
+logs/
+
+# Temporary files
+tmp/
+iyp_*.html
+web66_*.html
+
+# Environment
+.env
+.DS_Store
+
+# System
+.gemini/
+.agent/
+.agents/
